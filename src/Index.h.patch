@@ -1,0 +1,77 @@
+--- /usr/local/Cellar/llvm/4.0.0/include/clang-c/Index.h	2017-03-07 20:44:17.000000000 +0000
++++ src/Index.h	2017-11-06 22:02:19.000000000 +0000
+@@ -42,14 +42,18 @@
+     CINDEX_VERSION_MAJOR,                     \
+     CINDEX_VERSION_MINOR )
+ 
+-#define CINDEX_VERSION_STRINGIZE_(major, minor)   \
+-    #major"."#minor
++/*#define CINDEX_VERSION_STRINGIZE_(major, minor)   \
++    major"."minor
+ #define CINDEX_VERSION_STRINGIZE(major, minor)    \
+     CINDEX_VERSION_STRINGIZE_(major, minor)
+ 
+ #define CINDEX_VERSION_STRING CINDEX_VERSION_STRINGIZE( \
+     CINDEX_VERSION_MAJOR,                               \
+     CINDEX_VERSION_MINOR)
++*/
++
++#def CINDEX_LINKAGE
++#def CINDEX_DEPRECATED
+ 
+ #ifdef __cplusplus
+ extern "C" {
+@@ -3744,29 +3748,6 @@
+ CINDEX_LINKAGE unsigned clang_visitChildren(CXCursor parent,
+                                             CXCursorVisitor visitor,
+                                             CXClientData client_data);
+-#ifdef __has_feature
+-#  if __has_feature(blocks)
+-/**
+- * \brief Visitor invoked for each cursor found by a traversal.
+- *
+- * This visitor block will be invoked for each cursor found by
+- * clang_visitChildrenWithBlock(). Its first argument is the cursor being
+- * visited, its second argument is the parent visitor for that cursor.
+- *
+- * The visitor should return one of the \c CXChildVisitResult values
+- * to direct clang_visitChildrenWithBlock().
+- */
+-typedef enum CXChildVisitResult 
+-     (^CXCursorVisitorBlock)(CXCursor cursor, CXCursor parent);
+-
+-/**
+- * Visits the children of a cursor using the specified block.  Behaves
+- * identically to clang_visitChildren() in all other respects.
+- */
+-CINDEX_LINKAGE unsigned clang_visitChildrenWithBlock(CXCursor parent,
+-                                                    CXCursorVisitorBlock block);
+-#  endif
+-#endif
+ 
+ /**
+  * @}
+@@ -5454,23 +5435,6 @@
+                                                  CXFile file,
+                                               CXCursorAndRangeVisitor visitor);
+ 
+-#ifdef __has_feature
+-#  if __has_feature(blocks)
+-
+-typedef enum CXVisitorResult
+-    (^CXCursorAndRangeVisitorBlock)(CXCursor, CXSourceRange);
+-
+-CINDEX_LINKAGE
+-CXResult clang_findReferencesInFileWithBlock(CXCursor, CXFile,
+-                                             CXCursorAndRangeVisitorBlock);
+-
+-CINDEX_LINKAGE
+-CXResult clang_findIncludesInFileWithBlock(CXTranslationUnit, CXFile,
+-                                           CXCursorAndRangeVisitorBlock);
+-
+-#  endif
+-#endif
+-
+ /**
+  * \brief The client's data object that is associated with a CXFile.
+  */

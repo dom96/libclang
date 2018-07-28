@@ -1,0 +1,307 @@
+--- src/libclang.nim.orig	2017-11-06 22:56:14.000000000 +0000
++++ src/libclang.nim	2017-11-06 23:03:13.000000000 +0000
+@@ -1,19 +1,20 @@
++from times import Time
+ 
+-
+-import
+-  clang-c/Platform
+-
++when defined(windows):
++  const
++    libclang* = "libclang.dll"
++elif defined(macosx):
++  const 
++    libclang* = "libclang.dylib"
++else:
++  const
++    libclang* = "libclang.so"
+ 
+ type
+   CXErrorCode* {.size: sizeof(cint).} = enum
+     Success = 0, Failure = 1, Crashed = 2, InvalidArguments = 3, ASTReadError = 4
+ 
+ 
+-
+-import
+-  clang-c/Platform, clang-c/CXErrorCode, clang-c/CXString, clang-c/BuildSystem
+-
+-
+ const
+   CINDEX_VERSION_MAJOR* = 0
+   CINDEX_VERSION_MINOR* = 37
+@@ -26,13 +27,22 @@
+                                         CINDEX_VERSION_MINOR)
+ 
+ 
++type
++  CXString* = object
++    data*: pointer
++    private_flags*: cuint
++
++  CXStringSet* = object
++    Strings*: ptr CXString
++    Count*: cuint
++
+ 
+ type
+   CXIndex* = pointer
+ 
+ 
+ type
+-  CXTranslationUnit* = ptr CXTranslationUnitImpl
++  CXTranslationUnit* = pointer
+ 
+ 
+ type
+@@ -69,8 +79,10 @@
+ type
+   CXGlobalOptFlags* {.size: sizeof(cint).} = enum
+     None = 0x00000000, ThreadBackgroundPriorityForIndexing = 0x00000001,
+-    ThreadBackgroundPriorityForEditing = 0x00000002, ThreadBackgroundPriorityForAll = ThreadBackgroundPriorityForIndexing or
+-        ThreadBackgroundPriorityForEditing
++    ThreadBackgroundPriorityForEditing = 0x00000002,
++    ThreadBackgroundPriorityForAll =
++      ThreadBackgroundPriorityForIndexing.int or
++      ThreadBackgroundPriorityForEditing.int
+ 
+ 
+ 
+@@ -84,10 +96,8 @@
+   CXFile* = pointer
+ 
+ 
+-proc getFileName*(SFile: CXFile): CXString {.cdecl, importc: "clang_getFileName",
+-    dynlib: libclang.}
+ 
+-proc getFileTime*(SFile: CXFile): time_t {.cdecl, importc: "clang_getFileTime",
++proc getFileTime*(SFile: CXFile): Time {.cdecl, importc: "clang_getFileTime",
+                                        dynlib: libclang.}
+ 
+ type
+@@ -157,10 +167,6 @@
+                           line: ptr cuint; column: ptr cuint; offset: ptr cuint) {.cdecl,
+     importc: "clang_getExpansionLocation", dynlib: libclang.}
+ 
+-proc getPresumedLocation*(location: CXSourceLocation; filename: ptr CXString;
+-                         line: ptr cuint; column: ptr cuint) {.cdecl,
+-    importc: "clang_getPresumedLocation", dynlib: libclang.}
+-
+ proc getInstantiationLocation*(location: CXSourceLocation; file: ptr CXFile;
+                               line: ptr cuint; column: ptr cuint; offset: ptr cuint) {.
+     cdecl, importc: "clang_getInstantiationLocation", dynlib: libclang.}
+@@ -196,7 +202,7 @@
+     importc: "clang_disposeSourceRangeList", dynlib: libclang.}
+ 
+ type
+-  CXDiagnosticSeverity* {.size: sizeof(cint).} = enum
++  CXDiagnosticSeverity* {.size: sizeof(cint), pure.} = enum
+     Ignored = 0, Note = 1, Warning = 2, Error = 3, Fatal = 4
+ 
+ 
+@@ -216,7 +222,7 @@
+     importc: "clang_getDiagnosticInSet", dynlib: libclang.}
+ 
+ type
+-  Error* {.size: sizeof(cint).} = enum
++  Error* {.size: sizeof(cint), pure.} = enum
+     None = 0, Unknown = 1, CannotLoad = 2, InvalidFile = 3
+ 
+ 
+@@ -357,7 +363,7 @@
+     importc: "clang_defaultSaveOptions", dynlib: libclang.}
+ 
+ type
+-  CXSaveError* {.size: sizeof(cint).} = enum
++  CXSaveError* {.size: sizeof(cint), pure.} = enum
+     None = 0, Unknown = 1, TranslationErrors = 2, InvalidTU = 3
+ 
+ 
+@@ -586,7 +592,7 @@
+ proc getCursorLinkage*(cursor: CXCursor): CXLinkageKind {.cdecl,
+     importc: "clang_getCursorLinkage", dynlib: libclang.}
+ type
+-  CXVisibilityKind* {.size: sizeof(cint).} = enum
++  CXVisibilityKind* {.size: sizeof(cint), pure.} = enum
+     Invalid, Hidden, Protected, Default
+ 
+ 
+@@ -620,7 +626,7 @@
+     cdecl, importc: "clang_disposeCXPlatformAvailability", dynlib: libclang.}
+ 
+ type
+-  CXLanguageKind* {.size: sizeof(cint).} = enum
++  CXLanguageKind* {.size: sizeof(cint), pure.} = enum
+     Invalid = 0, C, ObjC, CPlusPlus
+ 
+ 
+@@ -632,7 +638,7 @@
+     importc: "clang_Cursor_getTranslationUnit", dynlib: libclang.}
+ 
+ type
+-  CXCursorSet* = ptr CXCursorSetImpl
++  CXCursorSet* = pointer
+ 
+ 
+ proc createCXCursorSet*(): CXCursorSet {.cdecl, importc: "clang_createCXCursorSet",
+@@ -673,7 +679,7 @@
+     importc: "clang_getCursorExtent", dynlib: libclang.}
+ 
+ type
+-  CXTypeKind* {.size: sizeof(cint).} = enum
++  CXTypeKind* {.size: sizeof(cint), pure.} = enum
+     Invalid = 0, Unexposed = 1, Void = 2, Bool = 3, Char_U = 4, UChar = 5, Char16 = 6, Char32 = 7,
+     UShort = 8, UInt = 9, ULong = 10, ULongLong = 11, UInt128 = 12, Char_S = 13, SChar = 14,
+     WChar = 15, Short = 16, Int = 17, Long = 18, LongLong = 19, Int128 = 20, Float = 21, Double = 22,
+@@ -691,7 +697,7 @@
+ 
+ 
+ type
+-  CXCallingConv* {.size: sizeof(cint).} = enum
++  CXCallingConv* {.size: sizeof(cint), pure.} = enum
+     Default = 0, C = 1, X86StdCall = 2, X86FastCall = 3, X86ThisCall = 4, X86Pascal = 5,
+     AAPCS = 6, AAPCS_VFP = 7, X86RegCall = 8, IntelOclBicc = 9, X86_64Win64 = 10,
+     X86_64SysV = 11, X86VectorCall = 12, Swift = 13, PreserveMost = 14, PreserveAll = 15,
+@@ -735,7 +741,7 @@
+     importc: "clang_Cursor_getArgument", dynlib: libclang.}
+ 
+ type
+-  CXTemplateArgumentKind* {.size: sizeof(cint).} = enum
++  CXTemplateArgumentKind* {.size: sizeof(cint), pure.} = enum
+     Null, Type, Declaration, NullPtr, Integral, Template, TemplateExpansion,
+     Expression, Pack, Invalid
+ 
+@@ -832,7 +838,7 @@
+                                     dynlib: libclang.}
+ 
+ type
+-  CXTypeLayoutError* {.size: sizeof(cint).} = enum
++  CXTypeLayoutError* {.size: sizeof(cint), pure.} = enum
+     InvalidFieldName = - 5, NotConstantSize = - 4, Dependent = - 3, Incomplete = - 2,
+     Invalid = - 1
+ 
+@@ -856,7 +862,7 @@
+ proc isAnonymous*(C: CXCursor): cuint {.cdecl, importc: "clang_Cursor_isAnonymous",
+                                     dynlib: libclang.}
+ type
+-  CXRefQualifierKind* {.size: sizeof(cint).} = enum
++  CXRefQualifierKind* {.size: sizeof(cint), pure.} = enum
+     None = 0, LValue, RValue
+ 
+ 
+@@ -987,7 +993,7 @@
+     importc: "clang_Cursor_getObjCPropertyAttributes", dynlib: libclang.}
+ 
+ type
+-  CXObjCDeclQualifierKind* {.size: sizeof(cint).} = enum
++  CXObjCDeclQualifierKind* {.size: sizeof(cint), pure.} = enum
+     None = 0x00000000, In = 0x00000001, Inout = 0x00000002, Out = 0x00000004,
+     Bycopy = 0x00000008, Byref = 0x00000010, Oneway = 0x00000020
+ 
+@@ -1220,7 +1226,7 @@
+ 
+ 
+ type
+-  CXCompletionContext* {.size: sizeof(cint).} = enum
++  CXCompletionContext* {.size: sizeof(cint), pure.} = enum
+     Unexposed = 0, AnyType = 1 shl 0, AnyValue = 1 shl 1, ObjCObjectValue = 1 shl 2,
+     ObjCSelectorValue = 1 shl 3, CXXClassTypeValue = 1 shl 4, DotMemberAccess = 1 shl 5,
+     ArrowMemberAccess = 1 shl 6, ObjCPropertyAccess = 1 shl 7, EnumTag = 1 shl 8,
+@@ -1282,7 +1288,7 @@
+                    client_data: CXClientData) {.cdecl,
+     importc: "clang_getInclusions", dynlib: libclang.}
+ type
+-  CXEvalResultKind* {.size: sizeof(cint).} = enum
++  CXEvalResultKind* {.size: sizeof(cint), pure.} = enum
+     UnExposed = 0, Int = 1, Float = 2, ObjCStrLiteral = 3, StrLiteral = 4, CFStr = 5, Other = 6
+ 
+ 
+@@ -1341,7 +1347,7 @@
+                               dynlib: libclang.}
+ 
+ type
+-  CXVisitorResult* {.size: sizeof(cint).} = enum
++  CXVisitorResult* {.size: sizeof(cint), pure.} = enum
+     Break, Continue
+ 
+ 
+@@ -1351,7 +1357,7 @@
+     visit*: proc (context: pointer; a3: CXCursor; a4: CXSourceRange): CXVisitorResult {.
+         cdecl.}
+ 
+-  CXResult* {.size: sizeof(cint).} = enum
++  CXResult* {.size: sizeof(cint), pure.} = enum
+     Success = 0, Invalid = 1, VisitBreak = 2
+ 
+ 
+@@ -1405,24 +1411,24 @@
+     loc*: CXIdxLoc
+     isImplicit*: cint
+ 
+-  CXIdxEntityKind* {.size: sizeof(cint).} = enum
++  CXIdxEntityKind* {.size: sizeof(cint), pure.} = enum
+     Unexposed = 0, Typedef = 1, Function = 2, Variable = 3, Field = 4, EnumConstant = 5,
+     ObjCClass = 6, ObjCProtocol = 7, ObjCCategory = 8, ObjCInstanceMethod = 9,
+     ObjCClassMethod = 10, ObjCProperty = 11, ObjCIvar = 12, Enum = 13, Struct = 14, Union = 15,
+     CXXClass = 16, CXXNamespace = 17, CXXNamespaceAlias = 18, CXXStaticVariable = 19,
+     CXXStaticMethod = 20, CXXInstanceMethod = 21, CXXConstructor = 22,
+     CXXDestructor = 23, CXXConversionFunction = 24, CXXTypeAlias = 25, CXXInterface = 26
+-  CXIdxEntityLanguage* {.size: sizeof(cint).} = enum
++  CXIdxEntityLanguage* {.size: sizeof(cint), pure.} = enum
+     None = 0, C = 1, ObjC = 2, CXX = 3
+ 
+ 
+ 
+ 
+ type
+-  CXIdxEntityCXXTemplateKind* {.size: sizeof(cint).} = enum
++  CXIdxEntityCXXTemplateKind* {.size: sizeof(cint), pure.} = enum
+     NonTemplate = 0, Template = 1, TemplatePartialSpecialization = 2,
+     TemplateSpecialization = 3
+-  CXIdxAttrKind* {.size: sizeof(cint).} = enum
++  CXIdxAttrKind* {.size: sizeof(cint), pure.} = enum
+     Unexposed = 0, IBAction = 1, IBOutlet = 2, IBOutletCollection = 3
+   CXIdxAttrInfo* = object
+     kind*: CXIdxAttrKind
+@@ -1588,7 +1594,7 @@
+ proc IndexAction_dispose*(a2: CXIndexAction) {.cdecl,
+     importc: "clang_IndexAction_dispose", dynlib: libclang.}
+ type
+-  CXIndexOptFlags* {.size: sizeof(cint).} = enum
++  CXIndexOptFlags* {.size: sizeof(cint), pure.} = enum
+     None = 0x00000000, SuppressRedundantRefs = 0x00000001,
+     IndexFunctionLocalSymbols = 0x00000002,
+     IndexImplicitTemplateInstantiations = 0x00000004,
+@@ -1639,19 +1645,6 @@
+     cdecl, importc: "clang_Type_visitFields", dynlib: libclang.}
+ 
+ 
+-import
+-  clang-c/Platform
+-
+-
+-type
+-  CXString* = object
+-    data*: pointer
+-    private_flags*: cuint
+-
+-  CXStringSet* = object
+-    Strings*: ptr CXString
+-    Count*: cuint
+-
+ 
+ 
+ proc getCString*(string: CXString): cstring {.cdecl, importc: "clang_getCString",
+@@ -1662,3 +1655,11 @@
+ 
+ proc disposeStringSet*(set: ptr CXStringSet) {.cdecl,
+     importc: "clang_disposeStringSet", dynlib: libclang.}
++
++
++proc getFileName*(SFile: CXFile): CXString {.cdecl, importc: "clang_getFileName",
++    dynlib: libclang.}
++
++proc getPresumedLocation*(location: CXSourceLocation; filename: ptr CXString;
++                         line: ptr cuint; column: ptr cuint) {.cdecl,
++    importc: "clang_getPresumedLocation", dynlib: libclang.}
+\ No newline at end of file
